@@ -65,7 +65,8 @@ summary1 <-
       ),
     "Medical history" =
       list(
-        "Previous myocardial infarction" = ~ qwraps2::n_perc(PREVMI == 1, digits = 1, na_rm = TRUE),
+        "Previous myocardial infarction" = ~ qwraps2::n_perc(PREVMI == 1, 
+                                                             digits = 1, na_rm = TRUE),
         "Current angina" = ~ qwraps2::n_perc(ANGINA == 1, digits = 1, na_rm = TRUE),
         "Diabetes" = ~ qwraps2::n_perc(DIABETES == 1, digits = 1),
         "Hypertension" = ~ qwraps2::n_perc(HYPERTEN == 1, digits = 1, na_rm = TRUE)
@@ -107,6 +108,210 @@ summary_table(dplyr::group_by(dig, TRTMT), summary1)
 ```
 
 
+### Table 4
+```{r, include=FALSE}
+dig <- dig %>%
+  mutate(treatment = case_when(
+    TRTMT == 1 ~ "Digoxin", 
+    TRTMT == 0 ~ "Placebo"
+  )) %>%
+  mutate(ejection_fraction = case_when(
+    EJF_PER < 25 ~ "<0.25",
+    TRUE ~ "0.25-0.45") # EJF_PER (25-45)
+  ) %>%
+  mutate(prior_digoxin_use = case_when(
+    DIGUSE == 1 ~ "Yes",
+    DIGUSE == 0 ~ "No"
+  )) %>%
+  mutate(cause = case_when(
+    CHFETIOL == 1 ~ "ischemic", 
+    !is.na(CHFETIOL) & CHFETIOL != 1 ~ "nonischemic") 
+  ) %>%
+  mutate(ct_ratio = case_when(
+    CHESTX > 0.55 ~ ">0.55",
+    TRUE ~ "<=0.55") # CT ratio <= 0.55
+  ) %>%
+  mutate(NYHA = case_when(
+    FUNCTCLS == 1 | FUNCTCLS == 2 ~ "I or II",
+    FUNCTCLS == 3 | FUNCTCLS == 4 ~ "III or IV")
+  )
+```
 
 
+```{r, include=FALSE}
+# combined outcome of death/hospitalization due to worsening heart failure
+subdig <- dig %>%
+  filter(DWHF == 1) #WHF == 1 | REASON == 1
+```
 
+```{r absolute_difference_%}
+abs_diff_ci <- function(p1, p2, n1, n2) {
+  diff <- p1 - p2
+  z <- 1.96 # 95%
+  se <- sqrt(p1 * (1-p1) / n1 + p2 * (1-p2) / n2)
+  ll <- diff - z * se
+  ul <- diff + z * se
+  print(paste0("Absolute Difference and 95% CI in %: ", 
+               format(round(diff*100, digits = 1), nsmall = 1), " (", 
+               format(round(ll*100, digits = 1), nsmall = 1), " to ", 
+               format(round(ul*100, digits = 1), nsmall = 1), ")"))
+}
+```
+
+```{r ejection_fraction, message = FALSE}
+# no. of patients with >=1 event
+subdig %>%
+  group_by(ejection_fraction, treatment) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# no. randomized
+dig %>%
+  group_by(ejection_fraction, treatment) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# 0.25-0.45
+prop_dig1 <- 613 / 2270
+prop_placebo1 <- 735 / 2273
+abs_diff_ci(prop_dig1, prop_placebo1, 2270, 2273)
+
+# <0.25
+prop_dig2 <- 428 / 1127
+prop_placebo2 <- 556 / 1130
+abs_diff_ci(prop_dig2, prop_placebo2, 1127, 1130)
+```
+
+```{r prev_use_digoxin, message=FALSE}
+# no. of patients with >=1 event
+subdig %>%
+  group_by(treatment, prior_digoxin_use) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# no. randomized
+dig %>%
+  group_by(treatment, prior_digoxin_use) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# Yes previous use of digoxin
+prop_dig1 <- 550 / 1498
+prop_placebo1 <- 688 / 1519
+abs_diff_ci(prop_dig1, prop_placebo1, 1498, 1519)
+
+# No previous use of digoxin
+prop_dig2 <- 491 / 1899
+prop_placebo2 <- 603 / 1884
+abs_diff_ci(prop_dig2, prop_placebo2, 1899, 1884)
+```
+
+```{r ischemic_nonischemic, message=FALSE}
+# no. of patients with >=1 event
+subdig %>%
+  filter(!is.na(cause)) %>%
+  group_by(treatment, cause) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# no. randomized
+dig %>%
+  filter(!is.na(cause)) %>%
+  group_by(treatment, cause) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# ischemic cause of heart failure 
+prop_dig1 <- 731 / 2405
+prop_placebo1 <- 873 / 2398
+abs_diff_ci(prop_dig1, prop_placebo1, 2405, 2398)
+
+# nonischemic cause of heart failure 
+prop_dig2 <- 306 / 983
+prop_placebo2 <- 413 / 996
+abs_diff_ci(prop_dig2, prop_placebo2, 983, 996)
+```
+
+```{r CT_ratio, message=FALSE}
+# no. of patients with >=1 event
+subdig %>%
+  group_by(treatment, ct_ratio) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# no. randomized
+dig %>%
+  group_by(treatment, ct_ratio) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# cardiothoracic ratio <=0.55
+prop_dig1 <- 600 / 2221
+prop_placebo1 <- 724 / 2233
+abs_diff_ci(prop_dig1, prop_placebo1, 2221, 2233)
+
+# cardiothoracic ratio >0.55
+prop_dig2 <- 441 / 1176
+prop_placebo2 <- 567 / 1170
+abs_diff_ci(prop_dig2, prop_placebo2, 1176, 1170)
+```
+
+```{r NYHA, message=FALSE}
+# no. of patients with >=1 event
+subdig %>%
+  filter(!is.na(NYHA)) %>%
+  group_by(treatment, NYHA) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# no. randomized
+dig %>%
+  filter(!is.na(NYHA)) %>%
+  group_by(treatment, NYHA) %>%
+  summarise(n = n()) %>%
+  spread(treatment, n) %>%
+  kable()
+
+# NYHA class (I or II)
+prop_dig1 <- 601 / 2275
+prop_placebo1 <- 739 / 2296
+abs_diff_ci(prop_dig1, prop_placebo1, 2275, 2296)
+
+# NYHA class (III or IV)
+prop_dig2 <- 438 / 1118
+prop_placebo2 <- 552 / 1105
+abs_diff_ci(prop_dig2, prop_placebo2, 1118, 1105)
+```
+
+```{r overall_pop, message=FALSE}
+# no. of patients hospitalized/dead due to worsening heart failure
+subdig %>%
+  group_by(treatment) %>%
+  summarise(n = n()) %>%
+  kable()
+
+sub_ndig <- 1041
+sub_nplacebo <- 1291 
+
+# overall study population
+dig %>%
+  group_by(treatment) %>%
+  summarise(n = n()) %>%
+  kable()
+
+ndig <- 3397
+nplacebo <- 3403
+
+prop_dig <- sub_ndig / ndig
+prop_placebo <- sub_nplacebo / nplacebo
+abs_diff_ci(prop_dig, prop_placebo, ndig, nplacebo)
+```
