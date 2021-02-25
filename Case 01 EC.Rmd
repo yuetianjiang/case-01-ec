@@ -1,0 +1,112 @@
+---
+title: "Case 01 EC"
+author: "Alice Jiang"
+date: "2/17/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(qwraps2)
+options(qwraps2_markup = "markdown")
+library(dplyr)
+library(knitr)
+library(tidyr)
+```
+
+```{r data, include=FALSE}
+dig <- read.csv("dig.csv")
+dig$TRTMT <- as.factor(dig$TRTMT)
+```
+            
+### Table 1
+```{r table1, echo=FALSE, results="asis"}
+# https://cran.r-project.org/web/packages/qwraps2/vignettes/summary-statistics.html
+summary1 <-
+  list(
+    "Characteristics" =
+      list(
+        "Age (yr) - mean (sd)" = ~ qwraps2::mean_sd(AGE, digits = 1),
+        "Ejection fraction - mean (sd)" = ~ qwraps2::mean_sd(EJF_PER, digits = 1),
+        "Median duration of CHF - mo" = ~ median(CHFDUR, digits = 1, na.rm = TRUE)
+      ),
+    "% of patients" =
+      list(
+        "Female sex" = ~ qwraps2::n_perc(SEX == 2, digits = 1),
+        "Nonwhite race" = ~ qwraps2::n_perc(RACE == 2, digits = 1),
+        "Age >70 yr" = ~ qwraps2::n_perc(AGE > 70, digits = 1),
+        "Cardiothoracic ratio >0.55" = ~ qwraps2::n_perc(CHESTX > 0.55, digits = 1, na_rm = TRUE),
+        "Previous digoxin use" = ~ qwraps2::n_perc(DIGUSE == 1, digits = 1)
+      ),
+    "Method of assessing ejection fraction" =
+      #1=Radionuclide, 2=Angiography, 3=2-D Echo
+      list(
+        "Radionuclide ventriculography" = ~ qwraps2::n_perc(EJFMETH == 1, digits = 1),
+        "Two-dimensional echocardiography" = ~ qwraps2::n_perc(EJFMETH == 3, digits = 1),
+        "Contrast angiography" = ~ qwraps2::n_perc(EJFMETH == 2, digits = 1)
+      ),
+    "NYHA class" =
+      list(
+        "I" = ~ qwraps2::n_perc(FUNCTCLS == 1, digits = 1, na_rm = TRUE),
+        "II" = ~ qwraps2::n_perc(FUNCTCLS == 2, digits = 1, na_rm = TRUE),
+        "III" = ~ qwraps2::n_perc(FUNCTCLS == 3, digits = 1, na_rm = TRUE),
+        "IV" = ~ qwraps2::n_perc(FUNCTCLS == 4, digits = 1, na_rm = TRUE)
+      ),
+    "No. of signs or symptoms of CHF" =
+      list(
+        "0" = ~ qwraps2::n_perc(NSYM == 0, digits = 1),
+        "1" = ~ qwraps2::n_perc(NSYM == 1, digits = 1),
+        "2" = ~ qwraps2::n_perc(NSYM == 2, digits = 1),
+        "3" = ~ qwraps2::n_perc(NSYM == 3, digits = 1),
+        ">=4" = ~ qwraps2::n_perc(NSYM > 3, digits = 1)
+      ),
+    "Medical history" =
+      list(
+        "Previous myocardial infarction" = ~ qwraps2::n_perc(PREVMI == 1, digits = 1, na_rm = TRUE),
+        "Current angina" = ~ qwraps2::n_perc(ANGINA == 1, digits = 1, na_rm = TRUE),
+        "Diabetes" = ~ qwraps2::n_perc(DIABETES == 1, digits = 1),
+        "Hypertension" = ~ qwraps2::n_perc(HYPERTEN == 1, digits = 1, na_rm = TRUE)
+      ),
+    "Concomitant medications" =
+      list(
+        "Diuretics" = ~ qwraps2::n_perc(DIURET == 1 |
+                                          DIURETK == 1, digits = 1, na_rm = TRUE),
+        "ACE inhibitors" = ~ qwraps2::n_perc(ACEINHIB == 1, digits = 1),
+        "Nitrates" = ~ qwraps2::n_perc(NITRATES == 1, digits = 1),
+        "Other vasodilators" = ~ qwraps2::n_perc(VASOD == 1, digits = 1, na_rm = TRUE)
+      ),
+    "Daily dose of study medication prescribed" =
+      list(
+        "0.125mg" = ~ qwraps2::n_perc(DIGDOSE == 0.125, digits = 1, na_rm = TRUE),
+        "0.250mg" = ~ qwraps2::n_perc(DIGDOSE == 0.25, digits = 1, na_rm = TRUE),
+        "0.375mg" = ~ qwraps2::n_perc(DIGDOSE == 0.375, digits = 1, na_rm = TRUE),
+        "0.500mg" = ~ qwraps2::n_perc(DIGDOSE == 0.5, digits = 1, na_rm = TRUE)
+      ),
+    "Primary cause of CHF" =
+      #1=Ischemic, 2=Hypertensive, 3=Valvular,
+      #4=Idiopathic, 5=Alcohol related, 6=Other
+      list(
+        "Ischemic" = ~ qwraps2::n_perc(CHFETIOL == 1, digits = 1, na_rm = TRUE),
+        "Nonischemic" = ~ qwraps2::n_perc(CHFETIOL != 1, digits = 1, na_rm = TRUE)
+      ),
+    "Primary cause of CHF - Nonischemic" =
+      list(
+        "Idiopathic" = ~ qwraps2::n_perc(CHFETIOL == 4, digits = 1, na_rm = TRUE),
+        "Hypertensive" = ~ qwraps2::n_perc(CHFETIOL == 2, digits = 1, na_rm = TRUE),
+        "Other" = ~ qwraps2::n_perc(
+          CHFETIOL == 6 | CHFETIOL == 5 | CHFETIOL == 3,
+          digits = 1,
+          na_rm = TRUE
+        )
+      )
+  )
+summary_table(dplyr::group_by(dig, TRTMT), summary1)
+```
+
+
+
+
+
