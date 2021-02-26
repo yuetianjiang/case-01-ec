@@ -23,8 +23,9 @@ library(survival)
 dig <- read.csv("dig.csv")
 dig$TRTMT <- as.factor(dig$TRTMT)
 ```
-            
+
 ### Table 1
+Note: Digoxin = 1 and Placebo = 0. NAs have been removed in certain calculations when needed, resulting in some proportion fractions with different denominator from the total no. of patients in the group. 
 ```{r table1, echo=FALSE, results="asis"}
 # https://cran.r-project.org/web/packages/qwraps2/vignettes/summary-statistics.html
 summary1 <-
@@ -109,6 +110,16 @@ summary1 <-
 summary_table(dplyr::group_by(dig, TRTMT), summary1)
 ```
 
+### Commentary
+
+Overall, I have been able to reproduce the exact same results as the NEJM paper. There were only a few discrepancies where the results are off by a few decimal place. 
+
+In Table 1, the standard deviation of ejection fraction in the digoxin group is off by 0.1 (8.8 instead of 8.9). The proportion of patients in the digoxin group that are nonwhite (14.3% vs. 14.4%), or show >= 4 signs of CHF (80.2% vs. 80.1%), or had nitrates as concomitant medication (42.2% vs. 42.1%), or had other nonischemic cause of CHF (5.5% vs. 5.4%) are all off by 0.1%. The proportion of patients in the placebo group who had 0.250mg daily dose of study medication prescribed (70.1% vs. 70.0%), or had idiopathic (nonischemic) cause of CHF (14.2% vs. 14.1%) are also off by 0.1%. Lastly, for the proportion of patients with ischemic cause of CHF, the placebo group is off by 0.3% (70.7% vs. 70.4%) and the digoxin group is off by 0.2% (71% vs. 70.8%). 
+
+In Table 4, the no. of randomized patients in digoxin group with CT ratio <=0.55 is off by 1 count (2221 vs. 2220) and the risk ratio for NYHA class (III or IV) is off by 0.01 (0.69 vs. 0.70).
+
+These discrepancies could potentially be due to difference in my treatment of missing data and that of the paper. 
+
 
 ### Table 4
 ```{r, include=FALSE}
@@ -139,14 +150,13 @@ dig <- dig %>%
   )
 ```
 
-
 ```{r, include=FALSE}
 # combined outcome of death/hospitalization due to worsening heart failure
 subdig <- dig %>%
   filter(DWHF == 1) #WHF == 1 | REASON == 1
 ```
 
-```{r absolute_difference_%}
+```{r absolute_difference_%, include=FALSE}
 abs_diff_ci <- function(p1, p2, n1, n2) {
   diff <- p1 - p2
   z <- 1.96 # 95%
@@ -160,6 +170,8 @@ abs_diff_ci <- function(p1, p2, n1, n2) {
 }
 ```
 
+
+#### Ejection fraction
 ```{r ejection_fraction, message = FALSE}
 # no. of patients with >=1 event
 subdig %>%
@@ -186,17 +198,20 @@ prop_placebo2 <- 556 / 1130
 abs_diff_ci(prop_dig2, prop_placebo2, 1127, 1130)
 
 # risk ratio
+## 0.25-0.45
 temp1 <- dig %>%
   filter(ejection_fraction == "0.25-0.45") 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
   gtsummary::tbl_regression(exp = TRUE)
 
+## <0.25
 temp2 <- dig %>%
   filter(ejection_fraction == "<0.25") 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
   gtsummary::tbl_regression(exp = TRUE)
 ```
 
+#### Previous use of digoxin
 ```{r prev_use_digoxin, message=FALSE}
 # no. of patients with >=1 event
 subdig %>%
@@ -223,17 +238,20 @@ prop_placebo2 <- 603 / 1884
 abs_diff_ci(prop_dig2, prop_placebo2, 1899, 1884)
 
 # risk ratio
+## Yes
 temp1 <- dig %>%
   filter(DIGUSE == 1) 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
   gtsummary::tbl_regression(exp = TRUE)
 
+## No
 temp2 <- dig %>%
   filter(DIGUSE == 0) 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
   gtsummary::tbl_regression(exp = TRUE)
 ```
 
+#### Cause of heart failure
 ```{r ischemic_nonischemic, message=FALSE}
 # no. of patients with >=1 event
 subdig %>%
@@ -262,17 +280,20 @@ prop_placebo2 <- 413 / 996
 abs_diff_ci(prop_dig2, prop_placebo2, 983, 996)
 
 # risk ratio
+## ischemic
 temp1 <- dig %>%
   filter(cause == "ischemic") 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
   gtsummary::tbl_regression(exp = TRUE)
 
+## nonischemic
 temp2 <- dig %>%
   filter(cause == "nonischemic") 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
   gtsummary::tbl_regression(exp = TRUE)
 ```
 
+#### Cardiothoracic ratio
 ```{r CT_ratio, message=FALSE}
 # no. of patients with >=1 event
 subdig %>%
@@ -299,17 +320,20 @@ prop_placebo2 <- 567 / 1170
 abs_diff_ci(prop_dig2, prop_placebo2, 1176, 1170)
 
 # risk ratio
+## <=0.55
 temp1 <- dig %>%
   filter(ct_ratio == "<=0.55") 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
   gtsummary::tbl_regression(exp = TRUE)
 
+## >0.55
 temp2 <- dig %>%
   filter(ct_ratio == ">0.55") 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
   gtsummary::tbl_regression(exp = TRUE)
 ```
 
+#### NYHA class
 ```{r NYHA, message=FALSE}
 # no. of patients with >=1 event
 subdig %>%
@@ -338,17 +362,20 @@ prop_placebo2 <- 552 / 1105
 abs_diff_ci(prop_dig2, prop_placebo2, 1118, 1105)
 
 # risk ratio
+## I or II
 temp1 <- dig %>%
   filter(NYHA == "I or II") 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
   gtsummary::tbl_regression(exp = TRUE)
 
+## III or IV
 temp2 <- dig %>%
   filter(NYHA == "III or IV") 
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
   gtsummary::tbl_regression(exp = TRUE)
 ```
 
+#### Overall study population
 ```{r overall_pop, message=FALSE}
 # no. of patients hospitalized/dead due to worsening heart failure
 subdig %>%
@@ -373,6 +400,7 @@ prop_placebo <- sub_nplacebo / nplacebo
 abs_diff_ci(prop_dig, prop_placebo, ndig, nplacebo)
 
 # risk ratio
+## overall study population
 coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = dig) %>%
   gtsummary::tbl_regression(exp = TRUE)
 ```
