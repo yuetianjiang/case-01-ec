@@ -15,6 +15,8 @@ options(qwraps2_markup = "markdown")
 library(dplyr)
 library(knitr)
 library(tidyr)
+library(survminer)
+library(survival)
 ```
 
 ```{r data, include=FALSE}
@@ -182,6 +184,17 @@ abs_diff_ci(prop_dig1, prop_placebo1, 2270, 2273)
 prop_dig2 <- 428 / 1127
 prop_placebo2 <- 556 / 1130
 abs_diff_ci(prop_dig2, prop_placebo2, 1127, 1130)
+
+# risk ratio
+temp1 <- dig %>%
+  filter(ejection_fraction == "0.25-0.45") 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
+  gtsummary::tbl_regression(exp = TRUE)
+
+temp2 <- dig %>%
+  filter(ejection_fraction == "<0.25") 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
+  gtsummary::tbl_regression(exp = TRUE)
 ```
 
 ```{r prev_use_digoxin, message=FALSE}
@@ -208,6 +221,17 @@ abs_diff_ci(prop_dig1, prop_placebo1, 1498, 1519)
 prop_dig2 <- 491 / 1899
 prop_placebo2 <- 603 / 1884
 abs_diff_ci(prop_dig2, prop_placebo2, 1899, 1884)
+
+# risk ratio
+temp1 <- dig %>%
+  filter(DIGUSE == 1) 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
+  gtsummary::tbl_regression(exp = TRUE)
+
+temp2 <- dig %>%
+  filter(DIGUSE == 0) 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
+  gtsummary::tbl_regression(exp = TRUE)
 ```
 
 ```{r ischemic_nonischemic, message=FALSE}
@@ -236,6 +260,17 @@ abs_diff_ci(prop_dig1, prop_placebo1, 2405, 2398)
 prop_dig2 <- 306 / 983
 prop_placebo2 <- 413 / 996
 abs_diff_ci(prop_dig2, prop_placebo2, 983, 996)
+
+# risk ratio
+temp1 <- dig %>%
+  filter(cause == "ischemic") 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
+  gtsummary::tbl_regression(exp = TRUE)
+
+temp2 <- dig %>%
+  filter(cause == "nonischemic") 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
+  gtsummary::tbl_regression(exp = TRUE)
 ```
 
 ```{r CT_ratio, message=FALSE}
@@ -262,6 +297,17 @@ abs_diff_ci(prop_dig1, prop_placebo1, 2221, 2233)
 prop_dig2 <- 441 / 1176
 prop_placebo2 <- 567 / 1170
 abs_diff_ci(prop_dig2, prop_placebo2, 1176, 1170)
+
+# risk ratio
+temp1 <- dig %>%
+  filter(ct_ratio == "<=0.55") 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
+  gtsummary::tbl_regression(exp = TRUE)
+
+temp2 <- dig %>%
+  filter(ct_ratio == ">0.55") 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
+  gtsummary::tbl_regression(exp = TRUE)
 ```
 
 ```{r NYHA, message=FALSE}
@@ -290,6 +336,17 @@ abs_diff_ci(prop_dig1, prop_placebo1, 2275, 2296)
 prop_dig2 <- 438 / 1118
 prop_placebo2 <- 552 / 1105
 abs_diff_ci(prop_dig2, prop_placebo2, 1118, 1105)
+
+# risk ratio
+temp1 <- dig %>%
+  filter(NYHA == "I or II") 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp1) %>%
+  gtsummary::tbl_regression(exp = TRUE)
+
+temp2 <- dig %>%
+  filter(NYHA == "III or IV") 
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = temp2) %>%
+  gtsummary::tbl_regression(exp = TRUE)
 ```
 
 ```{r overall_pop, message=FALSE}
@@ -314,4 +371,8 @@ nplacebo <- 3403
 prop_dig <- sub_ndig / ndig
 prop_placebo <- sub_nplacebo / nplacebo
 abs_diff_ci(prop_dig, prop_placebo, ndig, nplacebo)
+
+# risk ratio
+coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT, data = dig) %>%
+  gtsummary::tbl_regression(exp = TRUE)
 ```
